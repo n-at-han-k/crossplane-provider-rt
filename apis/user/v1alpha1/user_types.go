@@ -116,15 +116,11 @@ type UserParameters struct {
 
 	// Disabled
 	// +optional
-	// Not a scalar in the API description, so it travels as raw JSON.
-	// +kubebuilder:validation:Type=string
 	Disabled string `json:"Disabled,omitempty"`
 
 	// Privileged Can this user be granted rights in RT?
 	// +optional
-	// Not a scalar in the API description, so it travels as raw JSON.
-	// +kubebuilder:validation:Type=string
-	Privileged string `json:"Privileged,omitempty"`
+	Privileged int64 `json:"Privileged,omitempty"`
 }
 
 // UserObservation are the observable fields of a User.
@@ -214,7 +210,7 @@ type UserObservation struct {
 	Disabled string `json:"Disabled,omitempty"`
 
 	// Privileged Can this user be granted rights in RT?
-	Privileged string `json:"Privileged,omitempty"`
+	Privileged int64 `json:"Privileged,omitempty"`
 
 	// Memberships
 	Memberships string `json:"Memberships,omitempty"`

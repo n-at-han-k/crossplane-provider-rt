@@ -173,16 +173,8 @@ func desired(cr *v1alpha1.Queue) (*rt.QueuePostRequest, error) {
 	body.SortOrder = cr.Spec.ForProvider.SortOrder
 	body.CorrespondAddress = cr.Spec.ForProvider.CorrespondAddress
 	body.CommentAddress = cr.Spec.ForProvider.CommentAddress
-	if cr.Spec.ForProvider.SLADisabled != "" {
-		if err := json.Unmarshal([]byte(cr.Spec.ForProvider.SLADisabled), &body.SLADisabled); err != nil {
-			return nil, errors.Wrap(err, "SLADisabled")
-		}
-	}
-	if cr.Spec.ForProvider.Disabled != "" {
-		if err := json.Unmarshal([]byte(cr.Spec.ForProvider.Disabled), &body.Disabled); err != nil {
-			return nil, errors.Wrap(err, "Disabled")
-		}
-	}
+	body.SLADisabled = rt.PerlBoolean(cr.Spec.ForProvider.SLADisabled)
+	body.Disabled = rt.PerlBoolean(cr.Spec.ForProvider.Disabled)
 
 	return body, nil
 }
@@ -209,11 +201,7 @@ func observation(in *rt.QueueIdNameGet200Response) (v1alpha1.QueueObservation, e
 	} else {
 		return out, errors.Wrap(err, "CustomFields")
 	}
-	if raw, err := json.Marshal(in.SLADisabled); err == nil {
-		out.SLADisabled = string(raw)
-	} else {
-		return out, errors.Wrap(err, "SLADisabled")
-	}
+	out.SLADisabled = string(in.SLADisabled)
 	if raw, err := json.Marshal(in.Cc); err == nil {
 		out.Cc = string(raw)
 	} else {
@@ -233,11 +221,7 @@ func observation(in *rt.QueueIdNameGet200Response) (v1alpha1.QueueObservation, e
 		return out, errors.Wrap(err, "TicketCustomFields")
 	}
 	out.CommentAddress = in.CommentAddress
-	if raw, err := json.Marshal(in.Disabled); err == nil {
-		out.Disabled = string(raw)
-	} else {
-		return out, errors.Wrap(err, "Disabled")
-	}
+	out.Disabled = string(in.Disabled)
 	out.Lifecycle = in.Lifecycle
 	if raw, err := json.Marshal(in.Hyperlinks); err == nil {
 		out.Hyperlinks = string(raw)
@@ -295,15 +279,15 @@ func upToDate(cr *v1alpha1.Queue, observed *rt.QueueIdNameGet200Response) bool {
 	if cr.Spec.ForProvider.CommentAddress != "" && cr.Spec.ForProvider.CommentAddress != observed.CommentAddress {
 		return false
 	}
-	if cr.Spec.ForProvider.SLADisabled != "" {
-		if raw, err := json.Marshal(observed.SLADisabled); err != nil || !jsonEqual(cr.Spec.ForProvider.SLADisabled, string(raw)) {
-			return false
-		}
+	// Only what the person actually set: an optional field left empty is not
+	// a difference from whatever the server chose to put there.
+	if cr.Spec.ForProvider.SLADisabled != "" && cr.Spec.ForProvider.SLADisabled != string(observed.SLADisabled) {
+		return false
 	}
-	if cr.Spec.ForProvider.Disabled != "" {
-		if raw, err := json.Marshal(observed.Disabled); err != nil || !jsonEqual(cr.Spec.ForProvider.Disabled, string(raw)) {
-			return false
-		}
+	// Only what the person actually set: an optional field left empty is not
+	// a difference from whatever the server chose to put there.
+	if cr.Spec.ForProvider.Disabled != "" && cr.Spec.ForProvider.Disabled != string(observed.Disabled) {
+		return false
 	}
 
 	return true

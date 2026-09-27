@@ -74,9 +74,7 @@ spec:
                     description: Description
                     type: string
                   Disabled:
-                    description: |-
-                      Disabled
-                      Not a scalar in the API description, so it travels as raw JSON.
+                    description: Disabled
                     type: string
                   Lifecycle:
                     description: Lifecycle
@@ -86,9 +84,7 @@ spec:
                       400.
                     type: string
                   SLADisabled:
-                    description: |-
-                      SLADisabled
-                      Not a scalar in the API description, so it travels as raw JSON.
+                    description: SLADisabled
                     type: string
                   SortOrder:
                     description: SortOrder Seems to be an enumeration of some kind.

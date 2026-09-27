@@ -279,11 +279,7 @@ func observation(in *rt.TicketIdGet200Response) (v1alpha1.TicketObservation, err
 	} else {
 		return out, errors.Wrap(err, "AdminCc")
 	}
-	if raw, err := json.Marshal(in.Type); err == nil {
-		out.Type = string(raw)
-	} else {
-		return out, errors.Wrap(err, "Type")
-	}
+	out.Type = string(in.Type)
 	out.Status = in.Status
 	if raw, err := json.Marshal(in.Hyperlinks); err == nil {
 		out.Hyperlinks = string(raw)

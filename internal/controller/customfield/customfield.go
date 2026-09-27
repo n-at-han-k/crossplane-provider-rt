@@ -174,18 +174,10 @@ func desired(cr *v1alpha1.Customfield) (*rt.CustomfieldPostRequest, error) {
 	body.MaxValues = cr.Spec.ForProvider.MaxValues
 	body.Description = cr.Spec.ForProvider.Description
 	body.EntryHint = cr.Spec.ForProvider.EntryHint
-	if cr.Spec.ForProvider.UniqueValues != "" {
-		if err := json.Unmarshal([]byte(cr.Spec.ForProvider.UniqueValues), &body.UniqueValues); err != nil {
-			return nil, errors.Wrap(err, "UniqueValues")
-		}
-	}
+	body.UniqueValues = rt.PerlBoolean(cr.Spec.ForProvider.UniqueValues)
 	body.Pattern = cr.Spec.ForProvider.Pattern
 	body.SortOrder = cr.Spec.ForProvider.SortOrder
-	if cr.Spec.ForProvider.Disabled != "" {
-		if err := json.Unmarshal([]byte(cr.Spec.ForProvider.Disabled), &body.Disabled); err != nil {
-			return nil, errors.Wrap(err, "Disabled")
-		}
-	}
+	body.Disabled = rt.PerlBoolean(cr.Spec.ForProvider.Disabled)
 
 	return body, nil
 }
@@ -214,18 +206,10 @@ func observation(in *rt.CustomfieldIdGet200Response) (v1alpha1.CustomfieldObserv
 	out.ValidationHint = in.ValidationHint
 	out.Description = in.Description
 	out.EntryHint = in.EntryHint
-	if raw, err := json.Marshal(in.UniqueValues); err == nil {
-		out.UniqueValues = string(raw)
-	} else {
-		return out, errors.Wrap(err, "UniqueValues")
-	}
+	out.UniqueValues = string(in.UniqueValues)
 	out.Pattern = in.Pattern
 	out.SortOrder = in.SortOrder
-	if raw, err := json.Marshal(in.Disabled); err == nil {
-		out.Disabled = string(raw)
-	} else {
-		return out, errors.Wrap(err, "Disabled")
-	}
+	out.Disabled = string(in.Disabled)
 	if raw, err := json.Marshal(in.Values); err == nil {
 		out.Values = string(raw)
 	} else {
@@ -286,10 +270,10 @@ func upToDate(cr *v1alpha1.Customfield, observed *rt.CustomfieldIdGet200Response
 	if cr.Spec.ForProvider.EntryHint != "" && cr.Spec.ForProvider.EntryHint != observed.EntryHint {
 		return false
 	}
-	if cr.Spec.ForProvider.UniqueValues != "" {
-		if raw, err := json.Marshal(observed.UniqueValues); err != nil || !jsonEqual(cr.Spec.ForProvider.UniqueValues, string(raw)) {
-			return false
-		}
+	// Only what the person actually set: an optional field left empty is not
+	// a difference from whatever the server chose to put there.
+	if cr.Spec.ForProvider.UniqueValues != "" && cr.Spec.ForProvider.UniqueValues != string(observed.UniqueValues) {
+		return false
 	}
 	// Only what the person actually set: an optional field left empty is not
 	// a difference from whatever the server chose to put there.
@@ -301,10 +285,10 @@ func upToDate(cr *v1alpha1.Customfield, observed *rt.CustomfieldIdGet200Response
 	if cr.Spec.ForProvider.SortOrder != "" && cr.Spec.ForProvider.SortOrder != observed.SortOrder {
 		return false
 	}
-	if cr.Spec.ForProvider.Disabled != "" {
-		if raw, err := json.Marshal(observed.Disabled); err != nil || !jsonEqual(cr.Spec.ForProvider.Disabled, string(raw)) {
-			return false
-		}
+	// Only what the person actually set: an optional field left empty is not
+	// a difference from whatever the server chose to put there.
+	if cr.Spec.ForProvider.Disabled != "" && cr.Spec.ForProvider.Disabled != string(observed.Disabled) {
+		return false
 	}
 
 	return true

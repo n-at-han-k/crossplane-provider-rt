@@ -68,9 +68,7 @@ spec:
                     description: Description
                     type: string
                   Disabled:
-                    description: |-
-                      Disabled
-                      Not a scalar in the API description, so it travels as raw JSON.
+                    description: Disabled
                     type: string
                   EntryHint:
                     description: EntryHint
@@ -100,9 +98,7 @@ spec:
                     description: Type Custom field type.
                     type: string
                   UniqueValues:
-                    description: |-
-                      UniqueValues
-                      Not a scalar in the API description, so it travels as raw JSON.
+                    description: UniqueValues
                     type: string
                   ValidationHint:
                     description: ValidationHint

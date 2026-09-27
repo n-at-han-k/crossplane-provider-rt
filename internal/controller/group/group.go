@@ -168,11 +168,7 @@ func desired(cr *v1alpha1.Group) (*rt.GroupPostRequest, error) {
 
 	body.Name = cr.Spec.ForProvider.Name
 	body.Description = cr.Spec.ForProvider.Description
-	if cr.Spec.ForProvider.Disabled != "" {
-		if err := json.Unmarshal([]byte(cr.Spec.ForProvider.Disabled), &body.Disabled); err != nil {
-			return nil, errors.Wrap(err, "Disabled")
-		}
-	}
+	body.Disabled = rt.PerlBoolean(cr.Spec.ForProvider.Disabled)
 
 	return body, nil
 }
@@ -208,11 +204,7 @@ func observation(in *rt.GroupIdGet200Response) (v1alpha1.GroupObservation, error
 	}
 	out.Domain = in.Domain
 	out.Instance = in.Instance
-	if raw, err := json.Marshal(in.Disabled); err == nil {
-		out.Disabled = string(raw)
-	} else {
-		return out, errors.Wrap(err, "Disabled")
-	}
+	out.Disabled = string(in.Disabled)
 	if raw, err := json.Marshal(in.Members); err == nil {
 		out.Members = string(raw)
 	} else {
@@ -237,10 +229,10 @@ func upToDate(cr *v1alpha1.Group, observed *rt.GroupIdGet200Response) bool {
 	if cr.Spec.ForProvider.Description != "" && cr.Spec.ForProvider.Description != observed.Description {
 		return false
 	}
-	if cr.Spec.ForProvider.Disabled != "" {
-		if raw, err := json.Marshal(observed.Disabled); err != nil || !jsonEqual(cr.Spec.ForProvider.Disabled, string(raw)) {
-			return false
-		}
+	// Only what the person actually set: an optional field left empty is not
+	// a difference from whatever the server chose to put there.
+	if cr.Spec.ForProvider.Disabled != "" && cr.Spec.ForProvider.Disabled != string(observed.Disabled) {
+		return false
 	}
 
 	return true

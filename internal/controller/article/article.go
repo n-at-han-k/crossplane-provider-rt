@@ -177,11 +177,7 @@ func desired(cr *v1alpha1.Article) (*rt.ArticlePostRequest, error) {
 	body.SortOrder = cr.Spec.ForProvider.SortOrder
 	body.Parent = int32(cr.Spec.ForProvider.Parent)
 	body.URI = cr.Spec.ForProvider.URI
-	if cr.Spec.ForProvider.Disabled != "" {
-		if err := json.Unmarshal([]byte(cr.Spec.ForProvider.Disabled), &body.Disabled); err != nil {
-			return nil, errors.Wrap(err, "Disabled")
-		}
-	}
+	body.Disabled = rt.PerlBoolean(cr.Spec.ForProvider.Disabled)
 
 	return body, nil
 }
@@ -222,11 +218,7 @@ func observation(in *rt.ArticleIdGet200Response) (v1alpha1.ArticleObservation, e
 		return out, errors.Wrap(err, "Parent")
 	}
 	out.URI = in.URI
-	if raw, err := json.Marshal(in.Disabled); err == nil {
-		out.Disabled = string(raw)
-	} else {
-		return out, errors.Wrap(err, "Disabled")
-	}
+	out.Disabled = string(in.Disabled)
 
 	return out, nil
 }
@@ -256,10 +248,10 @@ func upToDate(cr *v1alpha1.Article, observed *rt.ArticleIdGet200Response) bool {
 	if cr.Spec.ForProvider.URI != "" && cr.Spec.ForProvider.URI != observed.URI {
 		return false
 	}
-	if cr.Spec.ForProvider.Disabled != "" {
-		if raw, err := json.Marshal(observed.Disabled); err != nil || !jsonEqual(cr.Spec.ForProvider.Disabled, string(raw)) {
-			return false
-		}
+	// Only what the person actually set: an optional field left empty is not
+	// a difference from whatever the server chose to put there.
+	if cr.Spec.ForProvider.Disabled != "" && cr.Spec.ForProvider.Disabled != string(observed.Disabled) {
+		return false
 	}
 
 	return true

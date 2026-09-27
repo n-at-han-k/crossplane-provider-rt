@@ -68,9 +68,7 @@ spec:
                     description: Description
                     type: string
                   Disabled:
-                    description: |-
-                      Disabled
-                      Not a scalar in the API description, so it travels as raw JSON.
+                    description: Disabled
                     type: string
                   Name:
                     description: Name

@@ -68,6 +68,16 @@ public class CrossplaneCodegen extends TerraformProviderCodegen {
      */
     private static final String SEPARATOR = "[;|\\s]+";
 
+    /**
+     * Schemas that are a NAMED scalar -- an enum or an alias of a string or a
+     * number -- rather than an object. `perlBoolean` is a string enum, so
+     * `Disabled` is a string in the CRD and a `PerlBoolean` on the client;
+     * treated as "not a scalar" it becomes a field holding JSON, and a person
+     * writing the obvious `Disabled: "0"` gets `cannot unmarshal number into
+     * Go value of type rt.PerlBoolean`.
+     */
+    private final Map<String, String> namedScalars = new LinkedHashMap<>();
+
     /** Collection paths to generate; empty means every path in the document. */
     private final Set<String> wanted = new LinkedHashSet<>();
 
@@ -544,6 +554,19 @@ public class CrossplaneCodegen extends TerraformProviderCodegen {
      * JSON string for now, as in the Terraform provider -- see the README.
      */
     private void split(OperationMap operations, List<ModelMap> allModels, String collection) {
+        // Which models are named scalars, before any field is classified.
+        for (ModelMap map : allModels) {
+            CodegenModel model = map.getModel();
+            boolean scalarUnderneath = model.dataType != null && isScalar(model.dataType);
+
+            if ((model.isEnum || model.isAlias) && scalarUnderneath) {
+                // The underlying type decides what the CRD field is: a string
+                // enum is a string, and perlBooleanInteger -- an enum of 0 and
+                // 1 -- is a number. A string field there would not convert.
+                namedScalars.put(model.classname, goType(model.dataType));
+            }
+        }
+
         @SuppressWarnings("unchecked")
         List<Map<String, Object>> attributes =
                 (List<Map<String, Object>>) operations.get("tfAttributes");
@@ -707,7 +730,7 @@ public class CrossplaneCodegen extends TerraformProviderCodegen {
     private Map<String, Object> field(String baseName, String dataType, String description, boolean required) {
         Map<String, Object> field = new HashMap<>();
 
-        boolean scalar = isScalar(dataType) || isIdentifier(baseName);
+        boolean scalar = isScalar(dataType) || isIdentifier(baseName) || namedScalars.containsKey(dataType);
 
         field.put("name", baseName);
         // The JSON tag is the wire name VERBATIM, so the CRD field, the Go
@@ -729,6 +752,15 @@ public class CrossplaneCodegen extends TerraformProviderCodegen {
             goType = "string";
             field.put("goType", goType);
             field.put("clientType", "RTID");
+            field.put("needsCast", true);
+        } else if (namedScalars.containsKey(dataType)) {
+            // `Disabled: "0"`, not `Disabled: '"0"'`. The CRD takes the value
+            // itself and the controller converts to the named type.
+            goType = namedScalars.get(dataType);
+            field.put("goType", goType);
+            // Qualified: the controller is its own package, and the named
+            // type lives beside the models in the client's.
+            field.put("clientType", providerName + "." + dataType);
             field.put("needsCast", true);
         } else {
             field.put("clientType", scalar ? dataType : "");

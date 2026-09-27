@@ -192,16 +192,8 @@ func desired(cr *v1alpha1.User) (*rt.UserPostRequest, error) {
 	body.Country = cr.Spec.ForProvider.Country
 	body.Password = cr.Spec.ForProvider.Password
 	body.Name = cr.Spec.ForProvider.Name
-	if cr.Spec.ForProvider.Disabled != "" {
-		if err := json.Unmarshal([]byte(cr.Spec.ForProvider.Disabled), &body.Disabled); err != nil {
-			return nil, errors.Wrap(err, "Disabled")
-		}
-	}
-	if cr.Spec.ForProvider.Privileged != "" {
-		if err := json.Unmarshal([]byte(cr.Spec.ForProvider.Privileged), &body.Privileged); err != nil {
-			return nil, errors.Wrap(err, "Privileged")
-		}
-	}
+	body.Disabled = rt.PerlBoolean(cr.Spec.ForProvider.Disabled)
+	body.Privileged = rt.PerlBooleanInteger(cr.Spec.ForProvider.Privileged)
 
 	return body, nil
 }
@@ -248,16 +240,8 @@ func observation(in *rt.UserIdNameGet200Response) (v1alpha1.UserObservation, err
 	out.State = in.State
 	out.Country = in.Country
 	out.Name = in.Name
-	if raw, err := json.Marshal(in.Disabled); err == nil {
-		out.Disabled = string(raw)
-	} else {
-		return out, errors.Wrap(err, "Disabled")
-	}
-	if raw, err := json.Marshal(in.Privileged); err == nil {
-		out.Privileged = string(raw)
-	} else {
-		return out, errors.Wrap(err, "Privileged")
-	}
+	out.Disabled = string(in.Disabled)
+	out.Privileged = int64(in.Privileged)
 	if raw, err := json.Marshal(in.Memberships); err == nil {
 		out.Memberships = string(raw)
 	} else {
@@ -377,15 +361,15 @@ func upToDate(cr *v1alpha1.User, observed *rt.UserIdNameGet200Response) bool {
 	if cr.Spec.ForProvider.Name != "" && cr.Spec.ForProvider.Name != observed.Name {
 		return false
 	}
-	if cr.Spec.ForProvider.Disabled != "" {
-		if raw, err := json.Marshal(observed.Disabled); err != nil || !jsonEqual(cr.Spec.ForProvider.Disabled, string(raw)) {
-			return false
-		}
+	// Only what the person actually set: an optional field left empty is not
+	// a difference from whatever the server chose to put there.
+	if cr.Spec.ForProvider.Disabled != "" && cr.Spec.ForProvider.Disabled != string(observed.Disabled) {
+		return false
 	}
-	if cr.Spec.ForProvider.Privileged != "" {
-		if raw, err := json.Marshal(observed.Privileged); err != nil || !jsonEqual(cr.Spec.ForProvider.Privileged, string(raw)) {
-			return false
-		}
+	// Only what the person actually set: an optional field left empty is not
+	// a difference from whatever the server chose to put there.
+	if cr.Spec.ForProvider.Privileged != 0 && cr.Spec.ForProvider.Privileged != int64(observed.Privileged) {
+		return false
 	}
 
 	return true

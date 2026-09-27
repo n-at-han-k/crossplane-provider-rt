@@ -85,9 +85,7 @@ spec:
                       Not a scalar in the API description, so it travels as raw JSON.
                     type: string
                   Disabled:
-                    description: |-
-                      Disabled
-                      Not a scalar in the API description, so it travels as raw JSON.
+                    description: Disabled
                     type: string
                   EmailAddress:
                     description: EmailAddress
@@ -124,10 +122,9 @@ spec:
                     description: Password Use a strong password!
                     type: string
                   Privileged:
-                    description: |-
-                      Privileged Can this user be granted rights in RT?
-                      Not a scalar in the API description, so it travels as raw JSON.
-                    type: string
+                    description: Privileged Can this user be granted rights in RT?
+                    format: int64
+                    type: integer
                   RealName:
                     description: RealName
                     type: string
@@ -287,7 +284,8 @@ spec:
                     type: string
                   Privileged:
                     description: Privileged Can this user be granted rights in RT?
-                    type: string
+                    format: int64
+                    type: integer
                   RealName:
                     description: RealName
                     type: string
