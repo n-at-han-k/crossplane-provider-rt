@@ -639,6 +639,17 @@ public class CrossplaneCodegen extends TerraformProviderCodegen {
                 && response.vars.stream().anyMatch(v -> camelize(v.baseName).equals(idField));
         operations.put("hasID", hasID);
 
+        // RT's delete for most objects is a DISABLE: the object stays, with
+        // Disabled "1". A read therefore still finds it after a successful
+        // delete, Crossplane deletes again, and the resource never finalises
+        // -- sixteen deletes in eleven minutes and a CR that cannot be
+        // removed. Where the read answers Disabled, that is what "gone"
+        // looks like, and only while the resource is being deleted: a
+        // disabled object that nobody asked to delete still exists, and
+        // reporting otherwise would have Crossplane create a second one.
+        operations.put("disabledIsGone", observations.stream()
+                .anyMatch(f -> "Disabled".equals(f.get("goName"))));
+
         operations.put("comparables",
                 parameters.stream().filter(f -> Boolean.TRUE.equals(f.get("comparable"))).toList());
 

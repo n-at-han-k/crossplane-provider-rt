@@ -362,6 +362,14 @@ func (c *external) Observe(ctx context.Context, cr *v1alpha1.Queue) (managed.Ext
 	}
 	cr.Status.AtProvider = at
 
+	// RT deletes this by disabling it, so after a successful delete the read
+	// still answers -- and without this the finalizer never comes off. Only
+	// while deleting: a disabled queue nobody asked to delete still
+	// exists, and saying otherwise would create a second one.
+	if meta.WasDeleted(cr) && observed.Disabled == "1" {
+		return managed.ExternalObservation{ResourceExists: false}, nil
+	}
+
 	if meta.WasDeleted(cr) {
 		cr.Status.SetConditions(xpv2.Deleting())
 	} else {
